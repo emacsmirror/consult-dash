@@ -1,0 +1,50 @@
+* Consult interface to dash docs
+
+  ~consult-dash~ provides a [[https://github.com/minad/consult][consult]] interface to [[https://github.com/dash-docs-el/dash-docs][dash documentation]].
+  The easiest way to install is to add ~consult-dash.el~ to your emacs
+  lisp path.
+
+  The only interface provided is the function ~consult-dash~, which
+  should be bound to a key sequence. If the default search term should
+  be derived from the symbol at point, please use the normal consult
+  method to customize ~consult-dash~ prompts:
+
+  #+begin_src emacs-lisp :lexical no
+    (consult-customize consult-dash :initial (thing-at-point 'symbol))
+  #+end_src
+
+  Support for [[https://github.com/oantolin/embark][embark]] and [[https://github.com/minad/marginalia][marginalia]] are automatically provided for
+  search results, if those packages are installed.
+
+  The following is an example [[https://github.com/jwiegley/use-package][use-package]] declaration:
+
+  #+begin_src emacs-lisp :lexical no
+    (use-package consult-dash
+      :bind (("M-s d" . consult-dash))
+      :config
+      ;; Use the symbol at point as initial search term
+      (consult-customize consult-dash :initial (thing-at-point 'symbol))
+      ;; Ensure that niceties are loaded too
+      (require 'embark)
+      (require 'marginalia))
+  #+end_src
+
+  Buffer-local values of docsets to search can be set by customizing
+  the buffer-local variable ~consult-dash-docsets~ in a mode hook. The
+  following is an example intended to placed inside a python mode hook:
+
+  #+begin_src emacs-lisp :lexical no
+    (when (functionp 'consult-dash)
+      (setq-local consult-dash-docsets '("Python 2" "Python 3" "NumPy")))
+  #+end_src
+
+  Please see [[https://github.com/dash-docs-el/dash-docs][dash documentation]] for more details on installing docsets.
+
+** Known limitations
+
+   The current implementation works only on Unix-like systems, since
+   it uses a shell command sequence to concatenate search commands for
+   each docset. Patches to support other systems, or a better method
+   for searching in sequence, are welcome. Please see the functions
+   ~consult-dash--builder-one-docset~ and ~consult-dash--builder~ in
+   the source for details.
