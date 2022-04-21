@@ -151,6 +151,7 @@ The first form indicates the docset from which subsequent results are returned."
   (seq-let (docset-name type filename anchor) (get-text-property 0 'consult-dash-docinfo candidate)
     (funcall dash-docs-browser-func (dash-docs-result-url docset-name filename anchor))))
 
+;;;###autoload
 (defun consult-dash (&optional initial)
   "Consult interface for dash documentation.
 
