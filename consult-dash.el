@@ -76,7 +76,7 @@ OLD-FUN."
 ;; Is there a better way to run multiple commands when using consult--async-command?
 (defun consult-dash--builder (input)
   "Build command line to search for INPUT."
-  (pcase-let ((`(,arg . ,opts) (consult--command-split input)))
+  (pcase-let ((`(,arg . ,_) (consult--command-split input)))
     (unless (string-blank-p arg)
       (when-let* ((docsets (dash-docs-maybe-narrow-docsets arg))
                   (cmds (mapcar (lambda (ds) (consult-dash--builder-one-docset ds arg)) docsets)))
@@ -112,7 +112,8 @@ To get the current value, call the closure with no arguments."
 Each line in LINES is of one of two forms:
   1. Variable `consult-dash--docset-prefix' followed by the actual docset name
   2. Query output from sqlite3
-The first form indicates the docset from which subsequent results are returned."
+The first form indicates the docset from which subsequent results are returned.
+Argument CURRENT-DOCSET is a closure used to maintain state across invocations."
   (let ((candidates)
         (current-candidate))
     (save-match-data
@@ -139,6 +140,7 @@ The first form indicates the docset from which subsequent results are returned."
     (nreverse candidates)))
 
 (defun consult-dash--make-formatter (current-docset-var)
+  "Make formatter for a given state CURRENT-DOCSET-VAR."
   (lambda (lines) (consult-dash--format lines current-docset-var)))
 
 (defun consult-dash--group (candidate transform)
@@ -154,7 +156,7 @@ The first form indicates the docset from which subsequent results are returned."
 
 (defun consult-dash-candidate-url (candidate)
   "Return URL for CANDIDATE."
-  (seq-let (docset-name type filename anchor) (get-text-property 0 'consult-dash-docinfo candidate)
+  (seq-let (docset-name _ filename anchor) (get-text-property 0 'consult-dash-docinfo candidate)
     (dash-docs-result-url docset-name filename anchor)))
 
 (defun consult-dash-yank-candidate-url (candidate)
@@ -165,7 +167,7 @@ The first form indicates the docset from which subsequent results are returned."
 
 (defun consult-dash--open-url (candidate)
   "Open URL for CANDIDATE in browser. See `dash-docs-browser-func'."
-  (seq-let (docset-name type filename anchor) (get-text-property 0 'consult-dash-docinfo candidate)
+  (seq-let (docset-name _ filename anchor) (get-text-property 0 'consult-dash-docinfo candidate)
     (funcall dash-docs-browser-func (dash-docs-result-url docset-name filename anchor))))
 
 ;;;###autoload
@@ -176,7 +178,6 @@ INITIAL is the default value provided."
   (interactive)
   (dash-docs-create-common-connections)
   (dash-docs-create-buffer-connections)
-  (setq consult-dash--current-docset nil)
   (let ((builder (consult-dash--with-buffer-context #'consult-dash--builder))
         (current-docset (consult-dash--local-variable)))
     ;; Can we replace cl-flet here with something not in cl-lib?
