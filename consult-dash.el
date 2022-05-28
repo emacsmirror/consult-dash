@@ -31,6 +31,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'consult)
 (require 'dash-docs)
 (require 'subr-x)
@@ -89,10 +90,23 @@ OLD-FUN."
       (with-current-buffer buf
         (apply func args)))))
 
-(defvar consult-dash--current-docset nil
-  "Stored current docset output for chunked calls to `consult-dash--format.'")
+;; Emacs lisp is single-threaded, but passing around global variables
+;; to maintain state (even within fake asynchronous code) requires
+;; mental overhead to ensure that there are no inconsistencies.
+;; Avoiding global variables (since gensym creates global variables)
+;; requires a closure:
+(defun consult-dash--local-variable (&optional value)
+  "Closure representing a local variable with initial value VALUE.
 
-(defun consult-dash--format (lines)
+To set a new value, call the closure with it as the argument.
+To get the current value, call the closure with no arguments."
+  (let ((var))
+    (setq var value)
+    (lambda (&rest val)
+      (when val (setq var (car val)))
+      var)))
+
+(defun consult-dash--format (lines current-docset)
   "Format dash candidates from LINES.
 
 Each line in LINES is of one of two forms:
@@ -107,7 +121,7 @@ The first form indicates the docset from which subsequent results are returned."
         (if (= 1 (length current-candidate))
             ;; FIXME: If we do not find the right prefix, we should raise an error
             (when (string-prefix-p consult-dash--docset-prefix str)
-              (setq consult-dash--current-docset (substring str (length consult-dash--docset-prefix))))
+              (funcall current-docset (substring str (length consult-dash--docset-prefix))))
           (let ((name (cadr current-candidate))
                 (type (car current-candidate))
                 (path (caddr current-candidate))
@@ -115,14 +129,17 @@ The first form indicates the docset from which subsequent results are returned."
             (add-face-text-property 0 (length name) 'consult-key nil name)
             (put-text-property 0 (length name)
                                'consult-dash-docinfo
-                               (list consult-dash--current-docset type path anchor)
+                               (list (funcall current-docset) type path anchor)
                                name)
             (push (list
                    name ;; replaces(format "%s (%s)" name type)
-                   consult-dash--current-docset
+                   (funcall current-docset)
                    current-candidate)
                   candidates)))))
     (nreverse candidates)))
+
+(defun consult-dash--make-formatter (current-docset-var)
+  (lambda (lines) (consult-dash--format lines current-docset-var)))
 
 (defun consult-dash--group (candidate transform)
   "Grouping function for CANDIDATE; used if TRANSFORM is nil."
@@ -160,21 +177,24 @@ INITIAL is the default value provided."
   (dash-docs-create-common-connections)
   (dash-docs-create-buffer-connections)
   (setq consult-dash--current-docset nil)
-  (when-let* ((builder (consult-dash--with-buffer-context #'consult-dash--builder))
-              (search-result (consult--read
-                              (consult--async-command builder
-                                (consult--async-transform consult-dash--format)
-                                (consult--async-highlight builder))
-                              :prompt "Dash: "
-                              :require-match t
-                              :group #'consult-dash--group
-                              :lookup #'consult--lookup-cdr
-                              :category 'consult-dash-result
-                              :annotate #'consult-dash--annotate
-                              :initial (consult--async-split-initial initial)
-                              :add-history (consult--async-split-thingatpt 'symbol)
-                              :history '(:input consult-dash--history))))
-    (dash-docs-browse-url search-result)))
+  (let ((builder (consult-dash--with-buffer-context #'consult-dash--builder))
+        (current-docset (consult-dash--local-variable)))
+    ;; Can we replace cl-flet here with something not in cl-lib?
+    (cl-flet ((formatter-fn (consult-dash--make-formatter current-docset)))
+      (when-let ((search-result (consult--read
+                                 (consult--async-command builder
+                                   (consult--async-transform formatter-fn)
+                                   (consult--async-highlight builder))
+                                 :prompt "Dash: "
+                                 :require-match t
+                                 :group #'consult-dash--group
+                                 :lookup #'consult--lookup-cdr
+                                 :category 'consult-dash-result
+                                 :annotate #'consult-dash--annotate
+                                 :initial (consult--async-split-initial initial)
+                                 :add-history (consult--async-split-thingatpt 'symbol)
+                                 :history '(:input consult-dash--history))))
+        (dash-docs-browse-url search-result)))))
 
 ;; Embark integration
 (with-eval-after-load "embark"
