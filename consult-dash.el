@@ -25,6 +25,9 @@
 
 ;; consult-dash is the only interface function
 
+;; Enable embark support with:
+;;   (with-eval-after-load "embark" (consult-dash-embark-enable))
+
 ;; To do
 
 ;; - Avoid concatenating commands through the shell
@@ -149,10 +152,20 @@ Argument CURRENT-DOCSET is a closure used to maintain state across invocations."
       candidate
     (car (get-text-property 0 'consult-dash-docinfo candidate))))
 
+(defun consult-dash--ellipsis ()
+  "Backwards compatibility for `truncate-string-ellipsis'."
+  (cond
+   ((bound-and-true-p truncate-string-ellipsis))
+   ((char-displayable-p ?…) "…")
+   ("...")))
+
 (defun consult-dash--annotate (candidate)
-  "Annotation for dash result CANDIDATE."
+  "Format marginalia for CANDIDATE."
   (seq-let (docset-name type filename anchor) (get-text-property 0 'consult-dash-docinfo candidate)
-    (format " %s %s: %s%s" docset-name type filename (if anchor (format "#%s" anchor) ""))))
+    (when (and type filename docset-name)
+      (concat "  " (truncate-string-to-width docset-name 12 0 ?\s (consult-dash--ellipsis) t)
+              "  " (truncate-string-to-width type 12 0 ?\s (consult-dash--ellipsis) t)
+              (format "%s%s" filename (if anchor (format "#%s" anchor) ""))))))
 
 (defun consult-dash-candidate-url (candidate)
   "Return URL for CANDIDATE."
@@ -198,27 +211,21 @@ INITIAL is the default value provided."
         (dash-docs-browse-url search-result)))))
 
 ;; Embark integration
-(with-eval-after-load "embark"
-  (embark-define-keymap consult-dash-embark-keymap
-    "Actions for consult dash results"
-    ("y" consult-dash-yank-candidate-url))
+(defvar consult-dash-embark-keymap
+  (let ((map (make-sparse-keymap)))
+    map)
+  "Actions for consult dash results.")
+(defun consult-dash-embark-enable ()
+  "Enable embark support for `consult-dash'.
+
+Call this function after embark has been loaded."
+  (define-key consult-dash-embark-keymap "y" #'consult-dash-yank-candidate-url)
+  (setq consult-dash-embark-keymap
+        (make-composed-keymap consult-dash-embark-keymap embark-general-map))
   (add-to-list 'embark-keymap-alist
                '(consult-dash-result . consult-dash-embark-keymap))
   (setf (alist-get 'consult-dash-result embark-default-action-overrides)
         #'consult-dash--open-url))
-
-;; Marginalia integration
-(with-eval-after-load "marginalia"
-  (defun consult-dash--annotate-marginalia (candidate)
-    "Format marginalia for CANDIDATE."
-    (seq-let (docset-name type filename anchor) (get-text-property 0 'consult-dash-docinfo candidate)
-      (when (and type filename docset-name)
-        (marginalia--fields
-         (docset-name)
-         (type)
-         ((format "%s%s" filename (if anchor (format "#%s" anchor) "")))))))
-  (add-to-list 'marginalia-annotator-registry
-               '(consult-dash-result consult-dash--annotate-marginalia)))
 
 (provide 'consult-dash)
 ;;; consult-dash.el ends here
