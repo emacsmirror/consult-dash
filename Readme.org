@@ -13,12 +13,7 @@
     (consult-customize consult-dash :initial (thing-at-point 'symbol))
   #+end_src
 
-  Enable support for [[https://github.com/oantolin/embark][embark]] using the following snippet:
-
-  #+begin_src emacs-lisp :lexical no
-    (with-eval-after-load "embark"
-      (consult-dash-embark-enable))
-  #+end_src
+  Support for [[https://github.com/oantolin/embark][embark]] is automatically enabled when embark is loaded.
 
   The following is an example [[https://github.com/jwiegley/use-package][use-package]] declaration:
 
@@ -27,10 +22,7 @@
       :bind (("M-s d" . consult-dash))
       :config
       ;; Use the symbol at point as initial search term
-      (consult-customize consult-dash :initial (thing-at-point 'symbol))
-      ;; Ensure that niceties are loaded too
-      (require 'embark)
-      (consult-dash-embark-enable))
+      (consult-customize consult-dash :initial (thing-at-point 'symbol)))
   #+end_src
 
   Buffer-local values of docsets to search can be set by customizing

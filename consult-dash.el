@@ -25,9 +25,6 @@
 
 ;; consult-dash is the only interface function
 
-;; Enable embark support with:
-;;   (with-eval-after-load "embark" (consult-dash-embark-enable))
-
 ;; To do
 
 ;; - Avoid concatenating commands through the shell
@@ -226,6 +223,7 @@ Call this function after embark has been loaded."
                '(consult-dash-result . consult-dash-embark-keymap))
   (setf (alist-get 'consult-dash-result embark-default-action-overrides)
         #'consult-dash--open-url))
+(with-eval-after-load 'embark (consult-dash-embark-enable))
 
 (provide 'consult-dash)
 ;;; consult-dash.el ends here
