@@ -38,7 +38,7 @@
 (require 'thingatpt)
 
 (defvar-local consult-dash-docsets nil
-  "Docsets to use for this buffer")
+  "Docsets to use for this buffer.")
 (defvar consult-dash-sqlite-args "sqlite3 -list"
   "Sqlite command line arguments.")
 
@@ -212,6 +212,10 @@ INITIAL is the default value provided."
   (let ((map (make-sparse-keymap)))
     map)
   "Actions for consult dash results.")
+(eval-when-compile
+  (defvar embark-general-map)
+  (defvar embark-keymap-alist)
+  (defvar embark-default-action-overrides))
 (defun consult-dash-embark-enable ()
   "Enable embark support for `consult-dash'.
 
