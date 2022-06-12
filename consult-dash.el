@@ -46,7 +46,7 @@
   "Add docsets from variable `consult-dash-docsets' to search list.
 
 OLD-FUN is the function that will be advised, normally
-`dash-docs-buffer-local-docsets'. ARGS are passed directly to
+`dash-docs-buffer-local-docsets'.  ARGS are passed directly to
 OLD-FUN."
   (let ((old (apply old-fun args)))
     (delq nil (delete-dups (append old consult-dash-docsets)))))
@@ -176,7 +176,7 @@ Argument CURRENT-DOCSET is a closure used to maintain state across invocations."
     (message "No URL for this candidate")))
 
 (defun consult-dash--open-url (candidate)
-  "Open URL for CANDIDATE in browser. See `dash-docs-browser-func'."
+  "Open URL for CANDIDATE in browser.  See `dash-docs-browser-func'."
   (seq-let (docset-name _ filename anchor) (get-text-property 0 'consult-dash-docinfo candidate)
     (funcall dash-docs-browser-func (dash-docs-result-url docset-name filename anchor))))
 
@@ -210,24 +210,20 @@ INITIAL is the default value provided."
 ;; Embark integration
 (defvar consult-dash-embark-keymap
   (let ((map (make-sparse-keymap)))
+    (define-key map "y" #'consult-dash-yank-candidate-url)
     map)
   "Actions for consult dash results.")
 (eval-when-compile
   (defvar embark-general-map)
   (defvar embark-keymap-alist)
   (defvar embark-default-action-overrides))
-(defun consult-dash-embark-enable ()
-  "Enable embark support for `consult-dash'.
-
-Call this function after embark has been loaded."
-  (define-key consult-dash-embark-keymap "y" #'consult-dash-yank-candidate-url)
+(with-eval-after-load 'embark
   (setq consult-dash-embark-keymap
         (make-composed-keymap consult-dash-embark-keymap embark-general-map))
   (add-to-list 'embark-keymap-alist
                '(consult-dash-result . consult-dash-embark-keymap))
   (setf (alist-get 'consult-dash-result embark-default-action-overrides)
         #'consult-dash--open-url))
-(with-eval-after-load 'embark (consult-dash-embark-enable))
 
 (provide 'consult-dash)
 ;;; consult-dash.el ends here
