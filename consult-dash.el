@@ -81,8 +81,8 @@ OLD-FUN."
     (unless (string-blank-p arg)
       (when-let* ((docsets (dash-docs-maybe-narrow-docsets arg))
                   (cmds (mapcar (lambda (ds) (consult-dash--builder-one-docset ds arg)) docsets)))
-        (list :command (list "sh" "-c" (apply #'concat cmds))
-              :highlight (cdr (consult--default-regexp-compiler arg 'basic t)))))))
+        (cons (list "sh" "-c" (apply #'concat cmds))
+              (cdr (consult--default-regexp-compiler arg 'basic t)))))))
 
 (defun consult-dash--with-buffer-context (func)
   "Ensure that FUNC is called with the correct buffer context."
