@@ -191,22 +191,21 @@ INITIAL is the default value provided."
   (dash-docs-create-buffer-connections)
   (let ((builder (consult-dash--with-buffer-context #'consult-dash--builder))
         (current-docset (consult-dash--local-variable)))
-    ;; Can we replace cl-flet here with something not in cl-lib?
-    (cl-flet ((formatter-fn (consult-dash--make-formatter current-docset)))
-      (when-let ((search-result (consult--read
-                                 (consult--async-command builder
-                                   (consult--async-transform formatter-fn)
-                                   (consult--async-highlight builder))
-                                 :prompt "Dash: "
-                                 :require-match t
-                                 :group #'consult-dash--group
-                                 :lookup #'consult--lookup-cdr
-                                 :category 'consult-dash-result
-                                 :annotate #'consult-dash--annotate
-                                 :initial (consult--async-split-initial initial)
-                                 :add-history (consult--async-split-thingatpt 'symbol)
-                                 :history '(:input consult-dash--history))))
-        (dash-docs-browse-url search-result)))))
+    (when-let ((search-result (consult--read
+                                (consult--async-pipeline
+                                 (consult--process-collection builder :file-handler t) ;; allow tramp
+                                 (consult--async-transform (consult-dash--make-formatter current-docset))
+                                 (consult--async-highlight builder))
+                                :prompt "Dash: "
+                                :require-match t
+                                :group #'consult-dash--group
+                                :lookup #'consult--lookup-cdr
+                                :category 'consult-dash-result
+                                :annotate #'consult-dash--annotate
+                                :initial initial
+                                :add-history (thing-at-point 'symbol)
+                                :history '(:input consult-dash--history))))
+      (dash-docs-browse-url search-result))))
 
 ;; Embark integration
 (defvar consult-dash-embark-keymap
